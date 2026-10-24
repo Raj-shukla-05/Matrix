@@ -115,6 +115,41 @@ def extract_from_image_ai(file_bytes: bytes, mime_type: str, api_key: str) -> tu
     return "", "Vision AI models were unable to transcribe the image."
 
 
+def extract_from_image_gemini(file_bytes: bytes, mime_type: str, api_key: str) -> tuple[str, str | None]:
+    """Extract text from image using Google Gemini Vision API."""
+    import requests
+    if not api_key:
+        return "", "Google Gemini API key not provided."
+    b64_data = base64.b64encode(file_bytes).decode("utf-8")
+    for g_model in ["gemini-2.0-flash", "gemini-1.5-flash"]:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{g_model}:generateContent?key={api_key.strip()}"
+        body = {
+            "contents": [
+                {
+                    "parts": [
+                        {"text": "Extract all plain text verbatim from this document/image. Do not summarize, output only the exact text present in the image."},
+                        {
+                            "inlineData": {
+                                "mimeType": mime_type,
+                                "data": b64_data
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+        try:
+            r = requests.post(url, json=body, timeout=25, headers={"Content-Type": "application/json"})
+            if r.status_code == 200:
+                data = r.json()
+                text = data["candidates"][0]["content"]["parts"][0]["text"]
+                if text.strip():
+                    return text.strip(), None
+        except Exception:
+            continue
+    return "", "Google Gemini Vision was unable to transcribe the image."
+
+
 def extract_text(uploaded_file, api_key: str = "") -> tuple[str, str | None]:
     """Unified file text extractor handling PDFs and images."""
     if not uploaded_file:
@@ -127,7 +162,6 @@ def extract_text(uploaded_file, api_key: str = "") -> tuple[str, str | None]:
         text, err = extract_from_pdf(file_bytes)
         if text:
             return text, None
-        # If PDF was scanned, and api_key is available, we could notify user
         return "", err or "Unable to extract text from PDF."
 
     # Image formats (.png, .jpg, .jpeg, .webp)
@@ -142,14 +176,25 @@ def extract_text(uploaded_file, api_key: str = "") -> tuple[str, str | None]:
     if text:
         return text, None
 
-    # Fallback to OpenRouter Vision if API key is present
+    # Fallback to Gemini if key starts with AIza
     if api_key:
-        text, ai_err = extract_from_image_ai(file_bytes, mime, api_key)
+        clean_key = api_key.strip()
+        if clean_key.startswith("AIza"):
+            text, gemini_err = extract_from_image_gemini(file_bytes, mime, clean_key)
+            if text:
+                return text, None
+            return "", f"{err} | Gemini Vision: {gemini_err}"
+
+        # Otherwise try OpenRouter Vision, and if that fails, try Gemini as well
+        text, ai_err = extract_from_image_ai(file_bytes, mime, clean_key)
+        if text:
+            return text, None
+        text, gemini_err = extract_from_image_gemini(file_bytes, mime, clean_key)
         if text:
             return text, None
         return "", f"{err} | AI Vision: {ai_err}"
 
     return "", (
         "Could not read image. Local Tesseract is not installed on this machine, "
-        "and no OpenRouter API key was provided for Vision AI extraction."
+        "and no API key was provided for Vision AI extraction."
     )

@@ -265,9 +265,62 @@ def _try_models(key, models, prompt, evidence, tools=None, timeout=60):
     return {"ok": False, "error": last}
 
 
+def _call_gemini(key, prompt, evidence, model_name="", timeout=30):
+    """Directly call Google Gemini REST API using official endpoints."""
+    g_models = [model_name] if model_name and "gemini" in model_name else ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.0-flash-lite"]
+    last_err = ""
+    for g_model in g_models:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{g_model}:generateContent?key={key.strip()}"
+        body = {
+            "systemInstruction": {
+                "parts": [{"text": SYSTEM}]
+            },
+            "contents": [
+                {"parts": [{"text": prompt}]}
+            ],
+            "generationConfig": {
+                "temperature": 0.2,
+                "responseMimeType": "application/json"
+            }
+        }
+        try:
+            r = requests.post(url, json=body, timeout=timeout, headers={"Content-Type": "application/json"})
+        except requests.RequestException as e:
+            return {"ok": False, "error": f"Connection error reaching Google Gemini ({type(e).__name__})"}
+
+        if r.status_code == 200:
+            try:
+                data = r.json()
+                raw_text = data["candidates"][0]["content"]["parts"][0]["text"]
+                fake_response = {
+                    "choices": [{
+                        "message": {
+                            "content": raw_text
+                        }
+                    }]
+                }
+                res = parse_response(fake_response, evidence)
+                res["model"] = f"Google {g_model}"
+                return res
+            except Exception as e:
+                last_err = f"Unreadable Gemini response: {e}"
+                continue
+        else:
+            err_msg = ""
+            try:
+                err_msg = r.json().get("error", {}).get("message", "")
+            except Exception:
+                pass
+            if r.status_code in (400, 403):
+                return {"ok": False, "error": f"Gemini API key error: {err_msg or 'Invalid Key'}"}
+            last_err = f"Gemini {g_model} HTTP {r.status_code}: {err_msg}"
+
+    return {"ok": False, "error": last_err or "Gemini API call failed"}
+
+
 def verify(text, emails, urls, phones, flag_ids, site="", api_key=None, company="",
            model="", native_search=False, timeout=60):
-    key = (api_key or os.environ.get("OPENROUTER_API_KEY", "")).strip()
+    key = (api_key or os.environ.get("OPENROUTER_API_KEY", "") or os.environ.get("GEMINI_API_KEY", "")).strip()
     if not key:
         return {"ok": False, "error": "no API key"}
 
@@ -287,6 +340,22 @@ def verify(text, emails, urls, phones, flag_ids, site="", api_key=None, company=
                 .replace("@@EVIDENCE@@", evidence_text))
 
     notes = []
+    queries = build_queries(company, emails, urls, phones, text)
+    evidence, ev_note = gather_evidence(queries)
+    if ev_note:
+        notes.append(ev_note)
+
+    prompt_filled = fill(_evidence_block(evidence))
+
+    # 1. Check if user provided a Google Gemini API Key
+    if key.startswith("AIza"):
+        res = _call_gemini(key, prompt_filled, evidence, model_name=model, timeout=timeout)
+        if res["ok"]:
+            res.update(mode="Free web search + Google Gemini", note="; ".join(notes))
+            _CACHE[ck] = res
+        return res
+
+    # 2. Check if user wants OpenRouter native search
     if native_search:
         tool = [{"type": "openrouter:web_search", "parameters": {"max_results": 5}}]
         res = _try_models(key, [model or NATIVE_DEFAULT_MODEL], fill(
@@ -299,12 +368,18 @@ def verify(text, emails, urls, phones, flag_ids, site="", api_key=None, company=
             return res
         notes.append("OpenRouter web search unavailable (" + res.get("error", "no sources") + "), used free search")
 
-    queries = build_queries(company, emails, urls, phones, text)
-    evidence, ev_note = gather_evidence(queries)
-    if ev_note:
-        notes.append(ev_note)
+    # 3. Try OpenRouter free models
     models = [model] if model else free_models()
-    res = _try_models(key, models, fill(_evidence_block(evidence)), evidence, None, timeout)
+    res = _try_models(key, models, prompt_filled, evidence, None, timeout)
+
+    # Fallback to Gemini if OpenRouter rejected the key (in case key is Gemini without AIza prefix)
+    if not res["ok"] and ("key rejected" in res.get("error", "").lower() or "unauthorized" in res.get("error", "").lower()):
+        g_res = _call_gemini(key, prompt_filled, evidence, model_name=model, timeout=timeout)
+        if g_res["ok"]:
+            g_res.update(mode="Free web search + Google Gemini", note="; ".join(notes))
+            _CACHE[ck] = g_res
+            return g_res
+
     if res["ok"]:
         res.update(mode="Free web search + OpenRouter model", note="; ".join(notes))
         _CACHE[ck] = res
