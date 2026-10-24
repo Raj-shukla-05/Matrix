@@ -7,6 +7,7 @@ import streamlit as st
 import ai
 import checks
 import engine
+import ocr
 from samples import SAMPLES
 
 # Page configuration
@@ -360,9 +361,12 @@ if "res" not in st.session_state:
     st.session_state["res"] = None
 if "reported" not in st.session_state:
     st.session_state["reported"] = False
+if "last_uploaded_name" not in st.session_state:
+    st.session_state["last_uploaded_name"] = None
 
 def set_sample_content(title):
     st.session_state["selected_sample_title"] = title
+    st.session_state["last_uploaded_name"] = None
     matched = next((s for s in SAMPLES if s["title"] == title), None)
     if matched:
         st.session_state["input_message_text"] = matched["text"]
@@ -532,6 +536,30 @@ with col_input:
         help="Select a realistic job offer sample to see how the engine and AI evaluate it.",
     )
 
+    with st.expander("📷 / 📄 Upload Offer Letter (Image or PDF)", expanded=False):
+        uploaded_doc = st.file_uploader(
+            "Upload an offer letter screenshot or document:",
+            type=["png", "jpg", "jpeg", "webp", "pdf"],
+            key="offer_doc_uploader",
+            help="Extracts text directly from PDF documents or scans using OCR, then fills the text area.",
+        )
+        if uploaded_doc is not None:
+            if st.session_state.get("last_uploaded_name") != uploaded_doc.name:
+                with st.spinner("Extracting text from offer document..."):
+                    extracted_text, ocr_err = ocr.extract_text(uploaded_doc, api_key=api_key)
+                    if extracted_text:
+                        st.session_state["input_message_text"] = extracted_text
+                        st.session_state["last_uploaded_name"] = uploaded_doc.name
+                        st.session_state["selected_sample_title"] = sample_titles[0]
+                        st.success(f"✓ Extracted text from {uploaded_doc.name} successfully!")
+                        st.rerun()
+                    else:
+                        st.error(f"Text Extraction Notice: {ocr_err}")
+            else:
+                st.caption(f"✓ Active document: `{uploaded_doc.name}`")
+                if uploaded_doc.type.startswith("image"):
+                    st.image(uploaded_doc, caption=uploaded_doc.name, use_container_width=True)
+
     msg_text = st.text_area(
         "Job message, offer letter, recruiter chat or email text:",
         height=180,
@@ -552,6 +580,7 @@ with col_input:
         btn_clear = st.button("Clear Input", use_container_width=True)
         if btn_clear:
             set_sample_content(sample_titles[0])
+            st.session_state["last_uploaded_name"] = None
             st.rerun()
 
     analyze_clicked = st.button("Check This Offer", type="primary", use_container_width=True)
