@@ -404,7 +404,7 @@ with st.sidebar:
         pass
 
     api_key = st.text_input(
-        "OpenRouter API Key",
+        "Enter your API Key",
         value=default_key,
         type="password",
         help="Free key from openrouter.ai/keys. Free models need zero credits.",
@@ -446,6 +446,71 @@ with st.sidebar:
         """,
         unsafe_allow_html=True,
     )
+
+    with st.expander("🔍 Search & Verify Community Database", expanded=False):
+        db_query = st.text_input(
+            "Search phone, email, or domain:",
+            placeholder="e.g. 9876543210 or quick-earn-jobs.xyz",
+            key="db_search_input"
+        )
+        if db_query.strip():
+            results = checks.search_database(db_query.strip())
+            if results:
+                st.error(f"🚨 Found {len(results)} threat match(es) in database!")
+                for kind, val, note, added in results:
+                    st.markdown(
+                        f"""
+                        <div style="background:#FEF2F2; border:1px solid #FECACA; border-radius:6px; padding:6px 10px; margin-bottom:6px; font-size:12px;">
+                            <strong>{kind.upper()}:</strong> <code>{val}</code><br>
+                            <span style="color:#991B1B;">Reason:</span> {note}<br>
+                            <span style="color:#64748B; font-size:10.5px;">Reported: {added or 'Recently'}</span>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+            else:
+                st.success(f"✓ No reports found for '{db_query.strip()}'. Not currently flagged.")
+
+        st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
+        if st.checkbox("View All Flagged Threats", value=False, key="show_threat_table"):
+            all_reports = checks.get_all_reports(limit=30)
+            if all_reports:
+                st.markdown(
+                    "<div style='font-size:11px; font-weight:700; color:#475569; margin-bottom:4px;'>RECENT COMMUNITY THREATS:</div>",
+                    unsafe_allow_html=True
+                )
+                for kind, val, note, added in all_reports:
+                    st.markdown(
+                        f"""
+                        <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:6px; padding:5px 8px; margin-bottom:5px; font-size:11.5px;">
+                            <span style="background:#F1F5F9; padding:1px 4px; border-radius:3px; font-weight:600; font-size:10px;">{kind.upper()}</span>
+                            <code>{val}</code><br>
+                            <span style="color:#475569; font-size:11px;">{note}</span>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+            else:
+                st.caption("Database is currently empty.")
+
+        st.markdown("<hr style='margin:10px 0; border:0; border-top:1px solid #E2E8F0;'>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:11.5px; font-weight:700; color:#0F172A;'>Report a Fraud Contact:</div>", unsafe_allow_html=True)
+        rep_col1, rep_col2 = st.columns([1, 2])
+        with rep_col1:
+            rep_kind = st.selectbox("Type", ["phone", "email", "domain"], key="rep_kind_select")
+        with rep_col2:
+            rep_val = st.text_input("Contact / URL", placeholder="Value...", key="rep_val_input")
+        rep_note = st.text_input("Details / Description", placeholder="e.g. asked 1500 registration fee", key="rep_note_input")
+        if st.button("Submit Threat to Database", use_container_width=True, key="btn_direct_submit"):
+            if rep_val.strip():
+                added = checks.add_report(rep_kind, rep_val.strip(), rep_note.strip() or "Community verified threat")
+                if added:
+                    st.success(f"✓ Added {rep_val.strip()} to community database!")
+                    st.rerun()
+                else:
+                    st.error("Invalid input.")
+            else:
+                st.warning("Please enter a phone number, email, or domain.")
 
     st.markdown(
         """

@@ -81,6 +81,32 @@ def count(path=None):
     return n
 
 
+def get_all_reports(limit=50, path=None):
+    init_db(path)
+    con = _connect(path)
+    rows = con.execute("SELECT kind, value, note, added FROM scams ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+    con.close()
+    return rows
+
+
+def search_database(query: str, path=None):
+    """Search for a contact, domain, or keyword in the community scam database."""
+    if not query or not query.strip():
+        return []
+    init_db(path)
+    q = query.strip().lower()
+    q_digits = re.sub(r"\D", "", q)
+    con = _connect(path)
+    params = [f"%{q}%", f"%{q}%"]
+    sql = "SELECT kind, value, note, added FROM scams WHERE value LIKE ? OR note LIKE ?"
+    if len(q_digits) >= 6:
+        sql += " OR (kind='phone' AND value LIKE ?)"
+        params.append(f"%{q_digits[-10:]}%")
+    rows = con.execute(sql, params).fetchall()
+    con.close()
+    return rows
+
+
 def registrable(domain):
     """Rough registrable domain: example.co.in -> example.co.in, mail.example.com -> example.com."""
     parts = domain.lower().strip(".").split(".")
