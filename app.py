@@ -528,7 +528,7 @@ with col_input:
     sel_idx = sample_titles.index(curr_selected) if curr_selected in sample_titles else 0
 
     st.selectbox(
-        "Or pick from 20 benchmark test cases:",
+        "Choose a sample message (20 benchmark test cases):",
         sample_titles,
         index=sel_idx,
         key="sample_dropdown_key",
@@ -536,7 +536,18 @@ with col_input:
         help="Select a realistic job offer sample to see how the engine and AI evaluate it.",
     )
 
-    with st.expander("📷 / 📄 Upload Offer Letter (Image or PDF)", expanded=False):
+    st.markdown(
+        """
+        <div style="display: flex; align-items: center; text-align: center; margin: 12px 0 10px 0;">
+            <div style="flex-grow: 1; border-bottom: 1px solid #CBD5E1;"></div>
+            <span style="padding: 0 14px; color: #475569; font-weight: 700; font-size: 12px; letter-spacing: 1px;">— OR —</span>
+            <div style="flex-grow: 1; border-bottom: 1px solid #CBD5E1;"></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    with st.expander("📷 / 📄 Upload an Image or PDF (Offer Letter / Screenshot)", expanded=False):
         uploaded_doc = st.file_uploader(
             "Upload an offer letter screenshot or document:",
             type=["png", "jpg", "jpeg", "webp", "pdf"],
