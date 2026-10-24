@@ -1,0 +1,64 @@
+# Test set written from scam patterns documented by Business Today, UP Police (via IANS) and the
+# Tech Mahindra recruitment fraud notice. These are reconstructions in my own words, NOT verbatim copies
+# of real messages. Phone numbers are fake. Replace or extend with your own real messages when you can.
+# Format: a line "### scam" or "### genuine", then the message. Run: python evaluate.py real
+
+### scam
+Dear you have passed our interview. Wage is Rs 8000/ day. Please contact to discuss details wa.me/919000011122
+
+### scam
+Part time online work, earn up to Rs 5000 a day from home. Simple tasks like liking YouTube videos and sending screenshots as proof. After you accept you will be added to a Telegram group with your task manager.
+
+### scam
+Your task earnings of Rs 18,400 are ready. To withdraw, deposit Rs 5000 as a verification amount in the account below. It will be returned along with your balance.
+
+### scam
+Dear Candidate, Tech Mahindra is pleased to offer you the post of Associate Engineer. Kindly pay Rs 6500 towards document verification and laptop security to confirm your seat. Send the payment screenshot to techmahindra.hr.office@gmail.com
+
+### scam
+Dear Sir, Greetings from Google India. You are shortlisted for Customer Support Associate (Work from Home), salary 45,000 per month. To proceed, share your Aadhaar card, PAN and bank passbook copy on our WhatsApp 9000011122. Reply within 24 hours.
+
+### scam
+Hi, this is Neha from HR. We found your profile on Naukri. Work from home form filling, 600 forms per day, Rs 30 per form, payment every week. WhatsApp 8800011122 to get form access. One time access code charge Rs 450.
+
+### scam
+Urgent requirement for helpers in Dubai, salary AED 2500 plus free food and room. Visa processing Rs 30,000 only, balance after reaching. Call agent 9000022233.
+
+### scam
+Congratulations! You are selected for a work from home role. Complete registration at https://bit.ly/3xJobsReg and receive your joining kit. Limited seats. Last date today.
+
+### scam
+Railway Group D recruitment 2026, 5000 posts, no exam, direct selection through our consultancy. Pay Rs 1 lakh after getting the appointment letter, Rs 20,000 advance now. Call 9000033344.
+
+### scam
+Hello, I am HR from Meta India. We are hiring remote Instagram moderators. Salary Rs 55,000 per month, no experience required. Interview through WhatsApp chat only. Send your Aadhaar for ID verification.
+
+### genuine
+Training and Placement Cell: TCS Ninja drive for the 2026 batch on 12 Nov. Registration is only through the official TCS Next Step portal. Please confirm the details with your placement officer. The company does not charge any fee.
+
+### genuine
+Dear Aman, please find attached your offer letter for the role of Associate Engineer. You can verify it by scanning the QR code on page 1, which opens the careers portal. We do not collect any fee or deposit. Regards, Talent Acquisition, Tech Mahindra, recruitment@techmahindra.com
+
+### genuine
+Hi Sneha, thanks for applying to the Business Analyst role at Zenith Retail Solutions. We would like to schedule a 30 minute video interview on Tuesday at 4 PM. The Google Meet link is in the calendar invite from hr@zenithretail.in. Please keep your resume ready.
+
+### genuine
+Hi Karan, I am a recruiter at Cognizant. Your profile matches our Programmer Analyst opening in Pune. Salary band is 4 to 5 LPA. If interested, apply on the Cognizant careers site and I will track your application. I will never ask you for any payment.
+
+### genuine
+Internship at Techvista Software Pvt Ltd, Lucknow: 3 months, stipend Rs 6,000 per month, 2 interview rounds. Apply with your resume at internships@techvista.co.in before 30 Nov.
+
+### genuine
+SSC CGL 2026 notification is out. Apply only on ssc.gov.in. The application fee as per the notification is paid online on the official portal. Beware of agents who ask for money for selection.
+
+### genuine
+Greetings from Zoho Corporation. We have openings for Software Developer Trainee. Package 6 LPA. Selection process: written test, technical interview, HR round. Apply at zoho.com/careers.
+
+### genuine
+Bhai mere office mein Java developer ka opening hai, Noida. 5 LPA ke around. Resume bhej mujhe email pe rahul.verma@gmail.com, main HR ko refer kar dunga. Interview 2 rounds hote hain.
+
+### genuine
+Welcome to Cloudnest Systems! On your joining day please bring original ID proof, address proof and two passport photos for HR verification at our Gomti Nagar office. Joining 3 Nov, 10 AM. Contact hr@cloudnestsystems.com
+
+### genuine
+Naukri alert: 12 new jobs match your profile Python Developer in Lucknow. Apply on naukri.com. Companies hiring: Infosys, Wipro, HCLTech.
