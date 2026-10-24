@@ -397,9 +397,9 @@ with st.sidebar:
     )
 
     st.markdown("### Settings")
-    default_key = os.environ.get("OPENROUTER_API_KEY", "")
+    default_key = os.environ.get("GEMINI_API_KEY", "") or os.environ.get("OPENROUTER_API_KEY", "")
     try:
-        default_key = default_key or st.secrets.get("OPENROUTER_API_KEY", "")
+        default_key = default_key or st.secrets.get("GEMINI_API_KEY", "") or st.secrets.get("OPENROUTER_API_KEY", "")
     except Exception:
         pass
 
@@ -407,8 +407,16 @@ with st.sidebar:
         "Enter your API Key",
         value=default_key,
         type="password",
-        help="Free key from openrouter.ai/keys. Free models need zero credits.",
+        help="Google Gemini API Key (starts with AIza...) or OpenRouter Key (starts with sk-or...).",
     )
+    clean_k = api_key.strip().strip("'\"")
+    if clean_k:
+        if clean_k.startswith("AIza"):
+            st.caption("🟢 Using **Google Gemini API** (`gemini-2.0-flash`)")
+        elif clean_k.startswith("sk-or"):
+            st.caption("🔵 Using **OpenRouter API**")
+        else:
+            st.caption("🟢 Using **Google Gemini API**")
 
     use_ai = st.toggle(
         "AI Web Verification",

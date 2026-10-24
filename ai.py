@@ -320,12 +320,12 @@ def _call_gemini(key, prompt, evidence, model_name="", timeout=30):
 
 def verify(text, emails, urls, phones, flag_ids, site="", api_key=None, company="",
            model="", native_search=False, timeout=60):
-    key = (api_key or os.environ.get("OPENROUTER_API_KEY", "") or os.environ.get("GEMINI_API_KEY", "")).strip()
+    key = (api_key or os.environ.get("OPENROUTER_API_KEY", "") or os.environ.get("GEMINI_API_KEY", "")).strip().strip("'\"")
     if not key:
-        return {"ok": False, "error": "no API key"}
+        return {"ok": False, "error": "No API key provided in the sidebar."}
 
     text = (text or "")[:4000]
-    ck = hashlib.sha256(f"{text}|{site}|{model}|{native_search}".encode("utf-8")).hexdigest()
+    ck = hashlib.sha256(f"{text}|{site}|{model}|{native_search}|{key}".encode("utf-8")).hexdigest()
     if ck in _CACHE:
         return _CACHE[ck]
 
@@ -347,42 +347,43 @@ def verify(text, emails, urls, phones, flag_ids, site="", api_key=None, company=
 
     prompt_filled = fill(_evidence_block(evidence))
 
-    # 1. Check if user provided a Google Gemini API Key
-    if key.startswith("AIza"):
-        res = _call_gemini(key, prompt_filled, evidence, model_name=model, timeout=timeout)
+    # Priority A: If key starts with sk-or, route to OpenRouter
+    if key.startswith("sk-or"):
+        if native_search:
+            tool = [{"type": "openrouter:web_search", "parameters": {"max_results": 5}}]
+            res = _try_models(key, [model or NATIVE_DEFAULT_MODEL], fill(
+                "Use your web search tool to gather evidence before answering."), [], tool, timeout)
+            if res["ok"] and res["grounded"]:
+                res.update(mode="OpenRouter web search", note="")
+                _CACHE[ck] = res
+                return res
+            if "key rejected" in res.get("error", ""):
+                return res
+            notes.append("OpenRouter web search unavailable, using free search")
+
+        models = [model] if model else free_models()
+        res = _try_models(key, models, prompt_filled, evidence, None, timeout)
         if res["ok"]:
-            res.update(mode="Free web search + Google Gemini", note="; ".join(notes))
+            res.update(mode="Free web search + OpenRouter model", note="; ".join(notes))
             _CACHE[ck] = res
         return res
 
-    # 2. Check if user wants OpenRouter native search
-    if native_search:
-        tool = [{"type": "openrouter:web_search", "parameters": {"max_results": 5}}]
-        res = _try_models(key, [model or NATIVE_DEFAULT_MODEL], fill(
-            "Use your web search tool to gather evidence before answering."), [], tool, timeout)
-        if res["ok"] and res["grounded"]:
-            res.update(mode="OpenRouter web search", note="")
-            _CACHE[ck] = res
-            return res
-        if "key rejected" in res.get("error", ""):
-            return res
-        notes.append("OpenRouter web search unavailable (" + res.get("error", "no sources") + "), used free search")
-
-    # 3. Try OpenRouter free models
-    models = [model] if model else free_models()
-    res = _try_models(key, models, prompt_filled, evidence, None, timeout)
-
-    # Fallback to Gemini if OpenRouter rejected the key (in case key is Gemini without AIza prefix)
-    if not res["ok"] and ("key rejected" in res.get("error", "").lower() or "unauthorized" in res.get("error", "").lower()):
-        g_res = _call_gemini(key, prompt_filled, evidence, model_name=model, timeout=timeout)
-        if g_res["ok"]:
-            g_res.update(mode="Free web search + Google Gemini", note="; ".join(notes))
-            _CACHE[ck] = g_res
-            return g_res
-
+    # Priority B: For all other keys (including Google Gemini keys AIzaSy...), route directly to Google Gemini
+    res = _call_gemini(key, prompt_filled, evidence, model_name=model, timeout=timeout)
     if res["ok"]:
-        res.update(mode="Free web search + OpenRouter model", note="; ".join(notes))
+        res.update(mode="Free web search + Google Gemini", note="; ".join(notes))
         _CACHE[ck] = res
+        return res
+
+    # Fallback to OpenRouter only if Gemini API key failed with invalid key and key doesn't start with AIza
+    if not key.startswith("AIza"):
+        models = [model] if model else free_models()
+        or_res = _try_models(key, models, prompt_filled, evidence, None, timeout)
+        if or_res["ok"]:
+            or_res.update(mode="Free web search + OpenRouter model", note="; ".join(notes))
+            _CACHE[ck] = or_res
+            return or_res
+
     return res
 
 
